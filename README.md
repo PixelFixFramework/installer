@@ -1,26 +1,8 @@
-## Developer
-
-<p>
-Neene Kaseba Ned<br>
-Developer and Creator of PixelFix Framework
-</p>
-
-<p>
-Zambia Air Services Training Institute<br>
-310198, KK International Airport<br>
-Lusaka, Zambia
-</p>
-
-<p>
-Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
-Phone: (+260) 976-032-099 | (+260) 969-889-084
-</p>
-
 # PixelFix Installer
 
 The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
 
-> Current release: `v0.1.1`, published on Packagist.
+> **Latest release:** Check [pixelfix/installer on Packagist](https://packagist.org/packages/pixelfix/installer) for the current published version.
 
 ## Requirements
 
@@ -97,6 +79,40 @@ The starter package is public, but installing it also requires access to `pixelf
 
 Configure Composer's GitHub OAuth credential globally using the official [Composer GitHub authentication instructions](https://getcomposer.org/doc/articles/authentication-for-private-packages.md#github-oauth). Composer's setting is `github-oauth.github.com`. Do not commit the token to a repository, add it to `composer.json`, or share it in logs or support messages. Use a token with only the repository read permissions required by the organization and follow any organization approval requirements.
 
+### Troubleshooting GitHub protocol and SSH errors
+
+If project creation fails with an error such as `Host key verification failed`, and the Composer output shows it trying to clone an address like `git@github.com:PixelFixFramework/framework.git`, check Composer's GitHub protocol configuration. The `github-protocols` setting controls the protocols Composer may use for GitHub clones, in priority order.
+
+Display the currently configured value (the setting name is plural: `github-protocols`):
+
+```powershell
+composer config --global github-protocols
+```
+
+If SSH fallback is enabled, configure Composer to use HTTPS only:
+
+```powershell
+composer config --global github-protocols https
+```
+
+This is a global Composer setting and affects other Composer projects for the current Windows user as well. It does **not** create a GitHub token, grant repository permissions, or fix an account that is not authorized to read the private framework repository. Keep a valid Composer GitHub OAuth credential configured and use an account that has access to `PixelFixFramework/framework`.
+
+To remove this override and return to Composer's default protocol selection, run:
+
+```powershell
+composer config --global --unset github-protocols
+```
+
+Composer's documented default is `https`, `ssh`, and `git` in priority order; the plain `git` protocol is only used when secure HTTP is disabled. See the [Composer `github-protocols` configuration reference](https://getcomposer.org/doc/06-config.md#github-protocols).
+
+If Composer continues attempting a `git@github.com:` clone after HTTPS-only mode is set, inspect the repository URL in the starter's `composer.json` and any Git URL rewrite rules before changing credentials:
+
+```powershell
+git config --show-origin --get-regexp "url\..*\.insteadof"
+```
+
+No output means that command found no configured Git URL rewrite rules at the Git configuration scopes it inspected. A `git@github.com:` clone can still originate from repository/source metadata, so verify the actual URL Composer is trying to clone. Do not disable host-key verification or share your token to troubleshoot this issue.
+
 If project creation fails after Composer has extracted the starter, the installer preserves that partial directory rather than deleting diagnostic files. After correcting the reported issue, enter the partial project and run:
 
 ```powershell
@@ -134,3 +150,21 @@ Before publishing a new tagged release:
 7. Confirm Packagist imports the new tag, then test `composer global update pixelfix/installer` from an installed v0.1.0 environment.
 
 The installer currently creates a project only. A browser-based application deployment wizard (database credentials, migrations, initial administrator account, and deployment checks) would be a separate feature in the starter application.
+
+## Developer
+
+<p>
+Neene Kaseba Ned<br>
+Developer and Creator of PixelFix Framework
+</p>
+
+<p>
+Zambia Air Services Training Institute<br>
+310198, KK International Airport<br>
+Lusaka, Zambia
+</p>
+
+<p>
+Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
+Phone: (+260) 976-032-099 | (+260) 969-889-084
+</p>
