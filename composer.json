@@ -1,0 +1,26 @@
+{
+  "name": "pixelfix/installer",
+  "description": "Global CLI installer for PixelFix applications",
+  "type": "library",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "PixelFix\\Installer\\": "src/"
+    }
+  },
+  "bin": [
+    "bin/pixelfix"
+  ],
+  "scripts": {
+    "test": "@php tests/run.php"
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
