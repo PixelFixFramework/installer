@@ -59,6 +59,7 @@ final class Installer
         $targetInput = null;
         $version = null;
         $dryRun = false;
+        $noInteraction = false;
 
         for ($index = 0, $count = count($arguments); $index < $count; $index++) {
             $argument = $arguments[$index];
@@ -73,9 +74,11 @@ final class Installer
                 continue;
             }
 
-            // Accepted for consistency with Composer-based CLI workflows.
-            // This command does not prompt for interactive input itself.
+            // Keep Composer interactive by default so it can request credentials
+            // for private dependencies. Suppress prompts only when explicitly
+            // requested by the caller.
             if ($argument === '--no-interaction' || $argument === '-n') {
+                $noInteraction = true;
                 continue;
             }
 
@@ -160,7 +163,7 @@ final class Installer
         }
 
         if ($dryRun) {
-            $composerCommand = $this->buildCreateProjectCommand($composerPrefix, $target, $version);
+            $composerCommand = $this->buildCreateProjectCommand($composerPrefix, $target, $version, $noInteraction);
             ($this->writer)('Dry run; no project files or directories will be created.');
             ($this->writer)($this->displayCommand($composerCommand));
             return 0;
@@ -204,7 +207,7 @@ final class Installer
             return 2;
         }
 
-        $composerCommand = $this->buildCreateProjectCommand($composerPrefix, $target, $version);
+        $composerCommand = $this->buildCreateProjectCommand($composerPrefix, $target, $version, $noInteraction);
 
         ($this->writer)('Creating PixelFix application in: ' . $target);
         ($this->writer)('Composer will install the starter and run its configured setup scripts.');
@@ -377,14 +380,20 @@ final class Installer
     }
 
     /** @param list<string> $composerPrefix @return list<string> */
-    private function buildCreateProjectCommand(array $composerPrefix, string $target, ?string $version): array
-    {
+    private function buildCreateProjectCommand(
+        array $composerPrefix,
+        string $target,
+        ?string $version,
+        bool $noInteraction = false
+    ): array {
         $command = [...$composerPrefix, 'create-project', 'pixelfix/pixelfix', $target];
         if ($version !== null) {
             $command[] = $version;
         }
         $command[] = '--prefer-dist';
-        $command[] = '--no-interaction';
+        if ($noInteraction) {
+            $command[] = '--no-interaction';
+        }
         return $command;
     }
 

@@ -16,8 +16,11 @@
 - [ ] Verify a successful create-project run executes Composer from the target parent directory.
 - [ ] Verify existing destinations are rejected and missing parent directories are created recursively.
 - [ ] Verify failure after starter extraction prints recovery instructions and preserves the partial project.
+- [ ] Verify Composer is interactive by default so it can request private-repository credentials; confirm `--no-interaction` is forwarded only when explicitly supplied.
 - [ ] Test both `pixelfix` and `pixel` aliases on Windows PowerShell and a Unix-like shell.
 - [ ] Test with a GitHub account that is authorized to read the private framework repository.
+- [ ] Verify the normal install remains interactive so Composer can prompt for private-repository credentials.
+- [ ] Verify `--no-interaction` is passed to Composer only when explicitly requested.
 
 ## Publication
 

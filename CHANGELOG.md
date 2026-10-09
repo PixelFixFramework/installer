@@ -2,7 +2,13 @@
 
 All notable changes to the PixelFix Installer are documented here.
 
-## [0.1.1] - Unreleased
+## [0.1.2] - Unreleased
+
+### Fixed
+- Keep Composer interactive by default so GitHub credentials can be requested during project creation for private framework dependencies.
+- Forward `--no-interaction` only when explicitly supplied by the user.
+
+## [0.1.1] - 2026-10-09
 
 ### Added
 - Create missing parent directories recursively for nested project paths.

@@ -126,8 +126,51 @@ test('creates a project through Composer with the requested version', function (
         expect($createProjectIndex !== false, 'Should call create-project.');
         expect(($calls[1][$createProjectIndex + 1] ?? null) === 'pixelfix/pixelfix', 'Should install the published starter.');
         expect(($calls[1][$createProjectIndex + 3] ?? null) === '0.1.3', 'Requested version should be forwarded.');
-        expect(in_array('--no-interaction', $calls[1], true), 'No-interaction should be enabled for deterministic execution.');
+        expect(!in_array('--no-interaction', $calls[1], true), 'Composer must remain interactive by default so it can prompt for private-repository credentials.');
         expect(str_contains(implode("\n", $output), 'created successfully'), 'Success guidance should be printed.');
+    } finally {
+        cleanupDirectory($cwd);
+    }
+});
+
+
+test('Composer remains interactive by default so credentials can be requested', function (): void {
+    $cwd = temporaryDirectory();
+    try {
+        $calls = [];
+        $installer = new Installer(
+            static function (array $command, string $workingDirectory) use (&$calls): int {
+                $calls[] = $command;
+                return 0;
+            },
+            static function (string $line): void {},
+            $cwd
+        );
+
+        expect($installer->run(['create', 'interactive-app']) === 0, 'Interactive installation should succeed in the test runner.');
+        expect(count($calls) === 2, 'Composer check and create-project should run.');
+        expect(!in_array('--no-interaction', $calls[1], true), 'The default create-project command must not suppress Composer prompts.');
+    } finally {
+        cleanupDirectory($cwd);
+    }
+});
+
+test('explicit no-interaction option is forwarded to Composer', function (): void {
+    $cwd = temporaryDirectory();
+    try {
+        $calls = [];
+        $installer = new Installer(
+            static function (array $command, string $workingDirectory) use (&$calls): int {
+                $calls[] = $command;
+                return 0;
+            },
+            static function (string $line): void {},
+            $cwd
+        );
+
+        expect($installer->run(['create', 'noninteractive-app', '--no-interaction']) === 0, 'Explicit non-interactive installation should succeed in the test runner.');
+        expect(count($calls) === 2, 'Composer check and create-project should run.');
+        expect(in_array('--no-interaction', $calls[1], true), 'Explicit --no-interaction must be forwarded to Composer.');
     } finally {
         cleanupDirectory($cwd);
     }

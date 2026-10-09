@@ -20,7 +20,7 @@ Phone: (+260) 976-032-099 | (+260) 969-889-084
 
 The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
 
-> Current release: `v0.1.0`, published on Packagist.
+> Current release: `v0.1.1`, published on Packagist.
 
 ## Requirements
 
@@ -81,11 +81,19 @@ Preview the planned command without requiring Composer to be installed or creati
 pixelfix new my-app --dry-run
 ```
 
+For interactive installation, the default behavior, Composer can prompt for GitHub credentials when a private framework dependency requires authentication. In automated environments where credentials are already configured, suppress prompts explicitly:
+
+```powershell
+pixelfix new my-app --no-interaction
+# or
+pixel create my-app -n
+```
+
 The destination must not already exist. Missing parent directories are created recursively when needed, so paths such as `apps/test-app` and `apps\test-app\` are supported. The nearest existing parent must be writable. The installer never overwrites an existing destination. Dry-run previews nested paths without creating directories or files.
 
 ## Private framework dependency
 
-The starter package is public, but installing it also requires access to `pixelfix/framework` while the framework repository remains private. Every developer installing the project needs a GitHub account with permission to read that repository and a valid Composer GitHub OAuth credential configured locally.
+The starter package is public, but installing it also requires access to `pixelfix/framework` while the framework repository remains private. Every developer installing the project needs a GitHub account with permission to read that repository and a valid Composer GitHub OAuth credential configured locally. The installer keeps Composer interactive by default so Composer can request credentials when required. Use `--no-interaction` only in automated environments where the required credentials have already been configured.
 
 Configure Composer's GitHub OAuth credential globally using the official [Composer GitHub authentication instructions](https://getcomposer.org/doc/articles/authentication-for-private-packages.md#github-oauth). Composer's setting is `github-oauth.github.com`. Do not commit the token to a repository, add it to `composer.json`, or share it in logs or support messages. Use a token with only the repository read permissions required by the organization and follow any organization approval requirements.
 
@@ -105,7 +113,7 @@ Run the standalone tests without installing dependencies:
 php tests/run.php
 ```
 
-The tests cover argument validation, destination safety, version forwarding, dry-run behavior, Composer working-directory selection, and recovery instructions when Composer leaves a partial starter project.
+The tests cover argument validation, destination safety, version forwarding, interactive authentication by default, explicit non-interactive mode, dry-run behavior, Composer working-directory selection, and recovery instructions when Composer leaves a partial starter project.
 
 To run the test suite through Composer in this package:
 
