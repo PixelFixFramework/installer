@@ -1,3 +1,21 @@
+## Developer
+
+<p>
+Neene Kaseba Ned<br>
+Developer and Creator of PixelFix Framework
+</p>
+
+<p>
+Zambia Air Services Training Institute<br>
+310198, KK International Airport<br>
+Lusaka, Zambia
+</p>
+
+<p>
+Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
+Phone: (+260) 976-032-099 | (+260) 969-889-084
+</p>
+
 # PixelFix Installer
 
 The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
@@ -150,21 +168,3 @@ Before publishing a new tagged release:
 7. Confirm Packagist imports the new tag, then test `composer global update pixelfix/installer` from an installed v0.1.0 environment.
 
 The installer currently creates a project only. A browser-based application deployment wizard (database credentials, migrations, initial administrator account, and deployment checks) would be a separate feature in the starter application.
-
-## Developer
-
-<p>
-Neene Kaseba Ned<br>
-Developer and Creator of PixelFix Framework
-</p>
-
-<p>
-Zambia Air Services Training Institute<br>
-310198, KK International Airport<br>
-Lusaka, Zambia
-</p>
-
-<p>
-Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
-Phone: (+260) 976-032-099 | (+260) 969-889-084
-</p>
