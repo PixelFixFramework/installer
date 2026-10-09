@@ -12,7 +12,8 @@
     }
   },
   "bin": [
-    "bin/pixelfix"
+    "bin/pixelfix",
+    "bin/pixel"
   ],
   "scripts": {
     "test": "@php tests/run.php"

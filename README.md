@@ -1,8 +1,26 @@
+## Developer
+
+<p>
+Neene Kaseba Ned<br>
+Developer and Creator of PixelFix Framework
+</p>
+
+<p>
+Zambia Air Services Training Institute<br>
+310198, KK International Airport<br>
+Lusaka, Zambia
+</p>
+
+<p>
+Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
+Phone: (+260) 976-032-099 | (+260) 969-889-084
+</p>
+
 # PixelFix Installer
 
 The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
 
-> Release status: release candidate. This package has not yet been pushed to its public installer repository or published on Packagist.
+> Current release: `v0.1.0`, published on Packagist.
 
 ## Requirements
 
@@ -11,21 +29,41 @@ The PixelFix Installer is a command-line tool for creating new applications from
 - Network access to Packagist and any repositories required by the starter.
 - Authorized access to `PixelFixFramework/framework` while that framework repository remains private.
 
-## Install the CLI after publication
+## Install the CLI
 
-Once `pixelfix/installer` has been published to Packagist:
+Install the published package globally from Packagist:
 
 ```powershell
 composer global require pixelfix/installer
 pixelfix --help
+pixel --help  # equivalent executable alias
 ```
 
-Make sure Composer's global executable directory is on `PATH` if PowerShell cannot find `pixelfix`. Find the directory with `composer global config bin-dir --absolute`, add that directory to your Windows user `PATH`, and open a new PowerShell window.
+Make sure Composer's global executable directory is on `PATH` if PowerShell cannot find `pixelfix` or `pixel`. Find the directory with `composer global config bin-dir --absolute`, add that directory to your Windows user `PATH`, and open a new PowerShell window.
+
+To update an existing global installation after a new installer release is published, run:
+
+```powershell
+composer global update pixelfix/installer
+```
 
 ## Create an application
 
 ```powershell
 pixelfix new my-app
+# Equivalent commands:
+pixelfix create my-app
+pixel new my-app
+pixel create my-app
+
+# Missing parent folders are created automatically:
+pixelfix create apps\test-app\
+pixel create apps\another-app\
+```
+
+After creating your project, change into it and start the application:
+
+```powershell
 cd my-app
 php pixel help
 php pixel serve
@@ -43,7 +81,7 @@ Preview the planned command without requiring Composer to be installed or creati
 pixelfix new my-app --dry-run
 ```
 
-The destination must not already exist, and its parent directory must already exist and be writable. The installer will not overwrite an existing destination.
+The destination must not already exist. Missing parent directories are created recursively when needed, so paths such as `apps/test-app` and `apps\test-app\` are supported. The nearest existing parent must be writable. The installer never overwrites an existing destination. Dry-run previews nested paths without creating directories or files.
 
 ## Private framework dependency
 
@@ -57,7 +95,7 @@ If project creation fails after Composer has extracted the starter, the installe
 composer install
 ```
 
-The starter's configured Composer scripts should then create `.env` and publish frontend assets. If you prefer a clean retry, inspect the partial directory and remove it yourself before running `pixelfix new` with that destination again.
+The starter's configured Composer scripts should then create `.env` and publish frontend assets. If you prefer a clean retry, inspect the partial directory and remove it yourself before running `pixelfix new` or `pixelfix create` with that destination again.
 
 ## Local development and tests
 
@@ -77,14 +115,14 @@ composer test
 
 ## Release checklist
 
-Before publishing a tagged release:
+Before publishing a new tagged release:
 
 1. Review `composer.json`, the license declaration, README, and tests.
-2. Run `composer validate` in an environment with Composer installed.
+2. Run `composer validate --strict`.
 3. Run `composer test` and `php tests/run.php`.
-4. Verify the `pixelfix` executable and global installation command on Windows and Linux.
+4. Verify both the `pixelfix` and `pixel` executable aliases on Windows and Linux.
 5. Test a new application from a clean target directory using a GitHub account authorized for the private framework.
-6. Create the installer repository under the PixelFix organization, push the release candidate, create a version tag, and submit the package to Packagist.
-7. Re-test `composer global require pixelfix/installer` from a clean user environment after the package has been indexed.
+6. Commit and push the reviewed changes, update the changelog, and create a new version tag.
+7. Confirm Packagist imports the new tag, then test `composer global update pixelfix/installer` from an installed v0.1.0 environment.
 
 The installer currently creates a project only. A browser-based application deployment wizard (database credentials, migrations, initial administrator account, and deployment checks) would be a separate feature in the starter application.

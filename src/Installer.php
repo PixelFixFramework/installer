@@ -139,16 +139,17 @@ final class Installer
         }
 
         $parent = dirname($target);
-        if (!is_dir($parent)) {
-            ($this->writer)("The parent directory does not exist: {$parent}");
-            ($this->writer)('Create the parent directory first, or choose a directory directly beneath an existing folder.');
+        $existingParent = $this->nearestExistingDirectory($parent);
+        if ($existingParent === null) {
+            ($this->writer)("Could not resolve an existing parent directory for: {$target}");
             return 2;
         }
 
-        if (!is_writable($parent)) {
-            ($this->writer)("The parent directory is not writable: {$parent}");
-            return 2;
-        }
+        // Do not rely exclusively on is_writable() here: Windows ACLs and
+        // PHP's permission probe can disagree. For a real installation we
+        // attempt recursive directory creation and then verify the final
+        // parent by creating/removing a uniquely named temporary directory.
+        // Dry-run performs no filesystem writes.
 
         // A dry run must remain useful on machines where Composer is not yet
         // installed. In that case use the generic `composer` command in the
@@ -158,15 +159,9 @@ final class Installer
             return 2;
         }
 
-        $composerCommand = [...$composerPrefix, 'create-project', 'pixelfix/pixelfix', $target];
-        if ($version !== null) {
-            $composerCommand[] = $version;
-        }
-        $composerCommand[] = '--prefer-dist';
-        $composerCommand[] = '--no-interaction';
-
         if ($dryRun) {
-            ($this->writer)('Dry run; no project files will be created.');
+            $composerCommand = $this->buildCreateProjectCommand($composerPrefix, $target, $version);
+            ($this->writer)('Dry run; no project files or directories will be created.');
             ($this->writer)($this->displayCommand($composerCommand));
             return 0;
         }
@@ -177,6 +172,39 @@ final class Installer
             ($this->writer)('Composer could not be started. Install Composer and ensure it is available on PATH.');
             return 2;
         }
+
+        // Create missing parent directories recursively. The final target
+        // directory is deliberately left for Composer's create-project command
+        // so the existing destination safety check remains meaningful.
+        if (!is_dir($parent) && !@mkdir($parent, 0777, true) && !is_dir($parent)) {
+            ($this->writer)("Could not create the parent directory: {$parent}");
+            ($this->writer)('Check that the nearest existing parent is writable and that the path is valid.');
+            ($this->writer)('If any parent folders were created before the failure, inspect them before retrying.');
+            return 2;
+        }
+
+        $resolvedParent = realpath($parent);
+        if ($resolvedParent === false || !is_dir($resolvedParent)) {
+            ($this->writer)("Could not resolve the created parent directory: {$parent}");
+            return 2;
+        }
+        $parent = $resolvedParent;
+        $target = $this->joinPath($parent, basename($target));
+
+        // Check again immediately before starting Composer, in case another
+        // process created the destination after our first check.
+        if (file_exists($target) || is_link($target)) {
+            ($this->writer)("The destination was created by another process; refusing to overwrite it: {$target}");
+            return 2;
+        }
+
+        if (!$this->canCreateDirectoryIn($parent)) {
+            ($this->writer)("The destination parent is not writable: {$parent}");
+            ($this->writer)('Choose a writable location or adjust its directory permissions.');
+            return 2;
+        }
+
+        $composerCommand = $this->buildCreateProjectCommand($composerPrefix, $target, $version);
 
         ($this->writer)('Creating PixelFix application in: ' . $target);
         ($this->writer)('Composer will install the starter and run its configured setup scripts.');
@@ -224,27 +252,68 @@ final class Installer
             return null;
         }
 
-        // Do not resolve the final component, because it must not exist yet.
-        $isWindowsAbsolute = preg_match('/^[A-Za-z]:[\\\\\/]/', $input) === 1;
+        // Accept both Windows and Unix path separators. Relative paths are
+        // interpreted from the directory where the user ran the installer.
+        $isWindowsAbsolute = preg_match('~^[A-Za-z]:[\\\\/]~', $input) === 1;
         $isAbsolute = str_starts_with($input, DIRECTORY_SEPARATOR) || $isWindowsAbsolute;
         $candidate = $isAbsolute ? $input : $this->workingDirectory . DIRECTORY_SEPARATOR . $input;
         $candidate = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $candidate);
+        $candidate = rtrim($candidate, DIRECTORY_SEPARATOR);
 
         $base = basename($candidate);
-        if ($base === '' || $base === '.' || $base === '..') {
-            ($this->writer)('The destination must name a new directory.');
+        if ($base === '' || $base === '.' || $base === '..' || preg_match('/^[A-Za-z]:$/', $base) === 1) {
+            ($this->writer)('The destination must name a new directory, not a filesystem root.');
             return null;
         }
 
-        $parentRealPath = realpath(dirname($candidate));
-        if ($parentRealPath === false) {
-            // If the path is directly relative to the working directory, that
-            // parent exists; nested nonexistent parents are rejected below.
-            ($this->writer)('The parent directory of the destination must already exist.');
+        // Walk upward until an existing directory is found, recording missing
+        // path components. This lets `apps/test-app` work even when neither
+        // `apps` nor `apps/test-app` exists yet.
+        $probe = dirname($candidate);
+        $missingComponents = [];
+
+        while (!is_dir($probe)) {
+            if (file_exists($probe) || is_link($probe)) {
+                ($this->writer)("A parent path component exists but is not a directory: {$probe}");
+                return null;
+            }
+
+            $component = basename($probe);
+            if ($component === '') {
+                ($this->writer)('Could not resolve the destination parent path.');
+                return null;
+            }
+
+            array_unshift($missingComponents, $component);
+            $next = dirname($probe);
+            if ($next === $probe) {
+                ($this->writer)('Could not resolve an existing ancestor for the destination path.');
+                return null;
+            }
+            $probe = $next;
+        }
+
+        $resolvedParent = realpath($probe);
+        if ($resolvedParent === false) {
+            ($this->writer)("Could not resolve the existing ancestor directory: {$probe}");
             return null;
         }
 
-        $target = rtrim($parentRealPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $base;
+        // Apply unresolved components in order. The `..` handling allows
+        // ordinary relative paths such as `some-folder/../my-app` to normalize
+        // correctly even when a folder in the path does not yet exist.
+        foreach ($missingComponents as $component) {
+            if ($component === '' || $component === '.') {
+                continue;
+            }
+            if ($component === '..') {
+                $resolvedParent = dirname($resolvedParent);
+                continue;
+            }
+            $resolvedParent = $this->joinPath($resolvedParent, $component);
+        }
+
+        $target = $this->joinPath($resolvedParent, $base);
         $working = realpath($this->workingDirectory);
         if ($working !== false && $target === $working) {
             ($this->writer)('The current directory cannot be the installation target.');
@@ -252,6 +321,71 @@ final class Installer
         }
 
         return $target;
+    }
+
+    private function nearestExistingDirectory(string $path): ?string
+    {
+        $probe = $path;
+        while (!is_dir($probe)) {
+            if (file_exists($probe) || is_link($probe)) {
+                return null;
+            }
+            $parent = dirname($probe);
+            if ($parent === $probe) {
+                return null;
+            }
+            $probe = $parent;
+        }
+
+        $resolved = realpath($probe);
+        return $resolved !== false && is_dir($resolved) ? $resolved : null;
+    }
+
+    private function joinPath(string $parent, string $child): string
+    {
+        return rtrim($parent, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $child;
+    }
+
+    /**
+     * Verify real directory-creation access instead of relying only on
+     * is_writable(), which can be misleading in some Windows permission setups.
+     */
+    private function canCreateDirectoryIn(string $parent): bool
+    {
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $probe = $this->joinPath(
+                $parent,
+                '.pixelfix-installer-write-check-' . bin2hex(random_bytes(6))
+            );
+
+            if (!@mkdir($probe, 0700)) {
+                if (file_exists($probe) || is_link($probe)) {
+                    continue;
+                }
+                return false;
+            }
+
+            if (!@rmdir($probe)) {
+                ($this->writer)("Could not remove the temporary permission-check directory: {$probe}");
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /** @param list<string> $composerPrefix @return list<string> */
+    private function buildCreateProjectCommand(array $composerPrefix, string $target, ?string $version): array
+    {
+        $command = [...$composerPrefix, 'create-project', 'pixelfix/pixelfix', $target];
+        if ($version !== null) {
+            $command[] = $version;
+        }
+        $command[] = '--prefer-dist';
+        $command[] = '--no-interaction';
+        return $command;
     }
 
     private function isSafeVersionConstraint(string $version): bool
@@ -282,18 +416,23 @@ final class Installer
         ($this->writer)('Usage:');
         ($this->writer)('  pixelfix new <directory> [--version=<constraint>] [--dry-run]');
         ($this->writer)('  pixelfix create <directory> [--version=<constraint>] [--dry-run]');
-        ($this->writer)('  pixelfix --help');
+        ($this->writer)('  pixel new <directory> [--version=<constraint>] [--dry-run]');
+        ($this->writer)('  pixel create <directory> [--version=<constraint>] [--dry-run]');
+        ($this->writer)('  pixelfix --help | pixel --help');
         ($this->writer)('');
         ($this->writer)('Creates an application from the pixelfix/pixelfix starter package using Composer.');
     }
 
     private function printNewHelp(): void
     {
-        ($this->writer)('Usage: pixelfix new <directory> [options]');
+        ($this->writer)('Usage: pixelfix create <directory> [options]');
+        ($this->writer)('       pixelfix new <directory> [options]');
+        ($this->writer)('       pixel create <directory> [options]');
+        ($this->writer)('       pixel new <directory> [options]');
         ($this->writer)('');
         ($this->writer)('Options:');
         ($this->writer)('  --version=<constraint>  Select a starter release (for example 0.1.3 or ^0.1).');
-        ($this->writer)('  --dry-run               Validate the destination and display the Composer command.');
+        ($this->writer)('  --dry-run               Preview the command without creating directories or files.');
         ($this->writer)('  --no-interaction, -n    Do not prompt for input.');
         ($this->writer)('  --help, -h              Show this help.');
     }

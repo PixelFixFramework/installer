@@ -3,7 +3,7 @@
 ## Package validation
 
 - [ ] Confirm package name is `pixelfix/installer`.
-- [ ] Confirm `bin/pixelfix` is listed under Composer `bin` and has a PHP CLI shebang.
+- [ ] Confirm `bin/pixelfix` and `bin/pixel` are listed under Composer `bin` and have PHP CLI shebangs.
 - [ ] Confirm the license declaration accurately represents intended distribution.
 - [ ] Run `composer validate`.
 - [ ] Run `composer test` and `php tests/run.php`.
@@ -12,11 +12,11 @@
 ## Integration verification
 
 - [ ] Run `pixelfix --help` after a global Composer installation.
-- [ ] Verify `pixelfix new sample-app --dry-run` creates no files and does not require Composer to be executable.
+- [ ] Verify `pixelfix new sample-app --dry-run` and `pixel create apps/sample-app --dry-run` preview nested paths without creating directories or files and do not require Composer to be executable.
 - [ ] Verify a successful create-project run executes Composer from the target parent directory.
-- [ ] Verify existing destinations are rejected.
+- [ ] Verify existing destinations are rejected and missing parent directories are created recursively.
 - [ ] Verify failure after starter extraction prints recovery instructions and preserves the partial project.
-- [ ] Test on Windows PowerShell and a Unix-like shell.
+- [ ] Test both `pixelfix` and `pixel` aliases on Windows PowerShell and a Unix-like shell.
 - [ ] Test with a GitHub account that is authorized to read the private framework repository.
 
 ## Publication

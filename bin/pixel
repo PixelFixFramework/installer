@@ -1,0 +1,9 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/src/Installer.php';
+
+$installer = new PixelFix\Installer\Installer();
+exit($installer->run(array_slice($argv, 1)));

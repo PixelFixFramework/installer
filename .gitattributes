@@ -1,0 +1,6 @@
+* text=auto
+*.php text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+bin/pixel text eol=lf
+bin/pixelfix text eol=lf

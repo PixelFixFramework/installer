@@ -183,6 +183,95 @@ test('create-project runs from destination parent, not installer package directo
     }
 });
 
+test('creates missing parent directories for nested destinations', function (): void {
+    $cwd = temporaryDirectory();
+    try {
+        $calls = [];
+        $output = [];
+        $installer = new Installer(
+            static function (array $command, string $workingDirectory) use (&$calls): int {
+                $calls[] = ['command' => $command, 'cwd' => $workingDirectory];
+                return 0;
+            },
+            static function (string $line) use (&$output): void { $output[] = $line; },
+            $cwd
+        );
+
+        $destinationArgument = 'apps\\test-app\\';
+        expect($installer->run(['create', $destinationArgument]) === 0, 'Nested project creation should succeed.');
+        $appsDirectory = $cwd . DIRECTORY_SEPARATOR . 'apps';
+        $expectedTarget = $appsDirectory . DIRECTORY_SEPARATOR . 'test-app';
+
+        expect(is_dir($appsDirectory), 'Missing parent directory should be created recursively.');
+        expect(count($calls) === 2, 'Composer version check and create-project should run.');
+        expect($calls[1]['cwd'] === realpath($appsDirectory), 'Composer must run from the newly created destination parent.');
+        $createProjectIndex = array_search('create-project', $calls[1]['command'], true);
+        expect($createProjectIndex !== false, 'create-project should be invoked.');
+        expect(($calls[1]['command'][$createProjectIndex + 2] ?? null) === $expectedTarget, 'Trailing separators should be normalized from the target path.');
+        expect(!file_exists($expectedTarget), 'The installer should leave the final app directory to Composer.');
+        expect(str_contains(implode("\n", $output), 'created successfully'), 'Successful completion guidance should be printed.');
+    } finally {
+        cleanupDirectory($cwd);
+    }
+});
+
+test('dry-run previews nested destinations without creating parent directories', function (): void {
+    $cwd = temporaryDirectory();
+    try {
+        $calls = [];
+        $output = [];
+        $installer = new Installer(
+            static function (array $command, string $workingDirectory) use (&$calls): int { $calls[] = $command; return 0; },
+            static function (string $line) use (&$output): void { $output[] = $line; },
+            $cwd
+        );
+
+        expect($installer->run(['create', 'apps\\test-app\\', '--dry-run']) === 0, 'Nested dry-run should succeed.');
+        expect($calls === [], 'Dry-run must not invoke Composer.');
+        expect(!is_dir($cwd . DIRECTORY_SEPARATOR . 'apps'), 'Dry-run must not create missing parent directories.');
+        expect(str_contains(implode("\n", $output), 'no project files or directories will be created'), 'Dry-run should explain that it makes no filesystem changes.');
+    } finally {
+        cleanupDirectory($cwd);
+    }
+});
+
+test('registers both pixelfix and pixel executable aliases', function (): void {
+    $packageRoot = dirname(__DIR__);
+    $composer = json_decode((string) file_get_contents($packageRoot . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+    expect(($composer['bin'] ?? null) === ['bin/pixelfix', 'bin/pixel'], 'Composer should install both CLI aliases.');
+
+    foreach (['pixelfix', 'pixel'] as $alias) {
+        $executable = $packageRoot . '/bin/' . $alias;
+        expect(is_file($executable), "The {$alias} executable should exist.");
+        $output = [];
+        $status = 1;
+        $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($executable) . ' --help 2>&1';
+        exec($command, $output, $status);
+        expect($status === 0, "The {$alias} executable should display help successfully.");
+        expect(str_contains(implode("\n", $output), 'pixel create <directory>'), "The {$alias} help should document the alias syntax.");
+    }
+});
+
+test('rejects a file used as a parent path component', function (): void {
+    $cwd = temporaryDirectory();
+    try {
+        file_put_contents($cwd . DIRECTORY_SEPARATOR . 'not-a-directory', 'x');
+        $calls = 0;
+        $output = [];
+        $installer = new Installer(
+            static function (array $command, string $workingDirectory) use (&$calls): int { $calls++; return 0; },
+            static function (string $line) use (&$output): void { $output[] = $line; },
+            $cwd
+        );
+
+        expect($installer->run(['create', 'not-a-directory' . DIRECTORY_SEPARATOR . 'app']) === 2, 'A file must not be accepted as a parent directory.');
+        expect($calls === 0, 'Composer must not run when a path component is a file.');
+        expect(str_contains(implode("\n", $output), 'not a directory'), 'The invalid parent component should be explained.');
+    } finally {
+        cleanupDirectory($cwd);
+    }
+});
+
 test('Composer failure gives recovery steps when a partial starter exists', function (): void {
     $cwd = temporaryDirectory();
     try {
