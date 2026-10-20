@@ -1,3 +1,7 @@
+# PixelFix Installer
+
+The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
+
 ## Developer
 
 <p>
@@ -15,12 +19,6 @@ Lusaka, Zambia
 Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
 Phone: (+260) 976-032-099 | (+260) 969-889-084
 </p>
-
-# PixelFix Installer
-
-The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
-
-> **Latest release:** Check [pixelfix/installer on Packagist](https://packagist.org/packages/pixelfix/installer) for the current published version.
 
 ## Requirements
 
