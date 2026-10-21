@@ -49,12 +49,6 @@ php pixel help
 php pixel serve
 ```
 
-Choose a published starter version:
-
-```powershell
-pixelfix new my-app --version=0.1.18
-```
-
 Preview the planned command without requiring Composer to be installed or creating project files:
 
 ```powershell
