@@ -2,24 +2,6 @@
 
 The PixelFix Installer is a command-line tool for creating new applications from the public `pixelfix/pixelfix` starter package. It delegates dependency resolution and the starter's post-install setup to Composer.
 
-## Developer
-
-<p>
-Neene Kaseba Ned<br>
-Developer and Creator of PixelFix Framework
-</p>
-
-<p>
-Zambia Air Services Training Institute<br>
-310198, KK International Airport<br>
-Lusaka, Zambia
-</p>
-
-<p>
-Email: <a href="mailto:neene@zasti.ac.zm">neene@zasti.ac.zm</a><br>
-Phone: (+260) 976-032-099 | (+260) 969-889-084
-</p>
-
 ## Requirements
 
 - PHP 8.2 or later.
